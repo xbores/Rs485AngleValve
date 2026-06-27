@@ -1,0 +1,196 @@
+version: "4.1"
+name: Project
+type: ARM
+deviceName: STM32F030F4Px
+packDir: .pack/Keil/STM32F0xx_DFP.2.1.1
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: App
+      files:
+        - path: ../APP/App/main.c
+      folders: []
+    - name: Bsp
+      files:
+        - path: ../APP/Bsp/adc.c
+        - path: ../APP/Bsp/gpio.c
+        - path: ../APP/Bsp/i2c.c
+        - path: ../APP/Bsp/rcc.c
+        - path: ../APP/Bsp/tim.c
+        - path: ../APP/Bsp/uart1.c
+        - path: ../APP/Bsp/wdg.c
+      folders: []
+    - name: CMSIS
+      files:
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_adc.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_can.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_cec.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_comp.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_crc.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_crs.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_dac.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_dbgmcu.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_dma.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_exti.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_flash.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_gpio.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_i2c.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_iwdg.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_misc.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_pwr.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_rcc.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_rtc.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_spi.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_syscfg.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_tim.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_usart.c
+        - path: ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/src/stm32f0xx_wwdg.c
+        - path: ../ST_F0_StdPeriph_Lib/CMSIS/system_stm32f0xx.c
+        - path: ../ST_F0_StdPeriph_Lib/CMSIS/startup_stm32f030.s
+      folders: []
+    - name: Libs
+      files:
+        - path: ../Libs/modbuscrc.c
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: 236619282c03e43403e62a83b32846ec
+targets:
+  Target 1:
+    cppPreprocessAttrs:
+      defineList:
+        - USE_STDPERIPH_DRIVER
+        - STM32F030
+        - STM32F030x6
+      incList:
+        - ../APP/Bsp
+        - ../APP/App
+        - ../ST_F0_StdPeriph_Lib/STM32F0xx_StdPeriph_Driver/inc
+        - ../ST_F0_StdPeriph_Lib/CMSIS
+        - ../Libs
+        - .cmsis/include
+        - RTE/Device/STM32F103C8
+        - RTE/_Target 1
+      libList: []
+    excludeList: []
+    settings:
+      debugger: cortex-debug
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M0
+        floatingPointHardware: none
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            gnu-extensions: true
+            one-elf-section-per-function: true
+            optimization: level-3
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x1000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x4000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+    uploader: JLink

@@ -1,0 +1,7 @@
+# 行尾规整: 源码/工程文件用 CRLF(匹配 Keil/Windows), shell 脚本用 LF
+# (仅转换行尾, 不改文件内容字节; GBK/UTF-8 中文注释不受影响)
+*           text=auto eol=crlf
+*.sh        text eol=lf
+*.md        text eol=lf
+*.uvprojx   text eol=crlf
+*.uvoptx    text eol=crlf

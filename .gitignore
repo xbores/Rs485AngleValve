@@ -1,0 +1,41 @@
+# ===== 编译产物 / 输出目录 =====
+Project/Objects/
+Project/Listings/
+Project/build/
+Project/DebugConfig/
+OUT/
+
+# ===== Keil 包缓存 / CMSIS 下载(体积大, 可由 Keil 包管理器还原) =====
+Project/.pack/
+Project/.cmsis/
+
+# ===== Keil 用户 / GUI / 调试 临时文件 =====
+*.uvguix.*
+*.uvoptx
+*.scvd
+Project/*.log
+Project/JLinkLog.txt
+Project/JLinkSettings.ini
+Project/.clang-format
+
+# ===== 备份文件 / 目录 =====
+*.bak
+*.bak.gbk
+*_backup_*/
+
+# ===== 其它常见产物 =====
+*.o
+*.axf
+*.bin
+*.hex
+*.crf
+*.dep
+*.lst
+*.map
+
+# ===== 编辑器 / 工具 =====
+.vscode/
+.claude/
+
+# ===== Office 打开文档时的锁定临时文件 =====
+~$*
