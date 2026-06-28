@@ -6,10 +6,16 @@
   2) 用量化因子 Ke、Kec 把 e、ec 映射到论域[-3,3];
   3) 三角隶属度把论域值分解到相邻两个语言值, E、EC 各取2个 -> 4 条激活规则;
   4) 查 ΔKp/ΔKi/ΔKd 规则表并按隶属度加权平均(重心法简化, Σ权=1);
-  5) Kp=Kp0+ΔKp*Kup, Ki=Ki0+ΔKi*Kui, Kd=Kd0+ΔKd*Kud;
-  6) 增量式: Δu = Kp*(e-e1) + Ki*e + Kd*(e-2*e1+e2)。
+  5) Kp=Kp0+ΔKp*Kup, Ki=Ki0+ΔKi*Kui, Kd=Kd0+ΔKd*Kud, 并限幅;
+  6) 增量式: Δu = Kp*(e-e1) + Ki*e - Kd*(pv-2*pv1+pv2)  (D 用测量值微分)。
+精细处理:
+  - 稳态死区: |e| <= 满量程1%(论域内 |eq|<=0.03)时不整定, 防稳态附近抖动;
+  - 测量值微分: D 项用测量值(pv)二阶差分而非误差, 消除改目标值时的微分冲击;
+  - 整定限幅: Kp/Ki/Kd 整定后钳到 [0, 基准×FUZZY_KMAX], 防极端工况增益被推过大。
 ***********************************************************************/
 #include "fuzzy_pid.h"
+
+#define FUZZY_KMAX  4.0f        /* 整定后增益上限 = 基准的倍数 */
 
 /* 语言值索引: NB=0 NM=1 NS=2 ZO=3 PS=4 PM=5 PB=6, 对应论域值 -3..3 */
 
@@ -92,13 +98,14 @@ void FuzzyPID_Init(FuzzyPID_t *fp,
     fp->Kp0 = Kp0; fp->Ki0 = Ki0; fp->Kd0 = Kd0;
     fp->Ke  = Ke;  fp->Kec = Kec;
     fp->Kup = Kup; fp->Kui = Kui; fp->Kud = Kud;
-    fp->e1  = 0.0f; fp->e2 = 0.0f;
+    fp->e1  = 0.0f; fp->pv1 = 0.0f; fp->pv2 = 0.0f;
 }
 
 void FuzzyPID_Reset(FuzzyPID_t *fp)
 {
-    fp->e1 = 0.0f;
-    fp->e2 = 0.0f;
+    fp->e1  = 0.0f;
+    fp->pv1 = 0.0f;
+    fp->pv2 = 0.0f;
 }
 
 float FuzzyPID_Calc(FuzzyPID_t *fp, float target, float actual)
@@ -109,20 +116,21 @@ float FuzzyPID_Calc(FuzzyPID_t *fp, float target, float actual)
     float eq  = clampf(e  * fp->Ke,  -3.0f, 3.0f);
     float ecq = clampf(ec * fp->Kec, -3.0f, 3.0f);
 
-    float dkp, dki, dkd;
-    fuzzy_tune(eq, ecq, &dkp, &dki, &dkd);
+    float dkp = 0.0f, dki = 0.0f, dkd = 0.0f;
+    if((eq > 0.03f) || (eq < -0.03f))         /* 稳态死区(|e|<=满量程1%)内不整定, 防稳态抖动 */
+    {
+        fuzzy_tune(eq, ecq, &dkp, &dki, &dkd);
+    }
 
-    float Kp = fp->Kp0 + dkp * fp->Kup;
-    float Ki = fp->Ki0 + dki * fp->Kui;
-    float Kd = fp->Kd0 + dkd * fp->Kud;
-    if(Kp < 0.0f) Kp = 0.0f;          /* 整定后参数不应为负 */
-    if(Ki < 0.0f) Ki = 0.0f;
-    if(Kd < 0.0f) Kd = 0.0f;
+    float Kp = clampf(fp->Kp0 + dkp * fp->Kup, 0.0f, fp->Kp0 * FUZZY_KMAX);   /* 整定后限幅: [0, 基准×KMAX] */
+    float Ki = clampf(fp->Ki0 + dki * fp->Kui, 0.0f, fp->Ki0 * FUZZY_KMAX);
+    float Kd = clampf(fp->Kd0 + dkd * fp->Kud, 0.0f, fp->Kd0 * FUZZY_KMAX);
 
-    /* 增量式 PID: e-e1=本次误差变化, e-2*e1+e2=误差二阶差分 */
-    float du = Kp * (e - fp->e1) + Ki * e + Kd * (e - 2.0f * fp->e1 + fp->e2);
+    /* 增量式 PID: P/I 用误差, D 用测量值二阶差分(消除改目标值时的微分冲击) */
+    float du = Kp * ec + Ki * e - Kd * (actual - 2.0f * fp->pv1 + fp->pv2);
 
-    fp->e2 = fp->e1;
-    fp->e1 = e;
+    fp->e1  = e;
+    fp->pv2 = fp->pv1;
+    fp->pv1 = actual;
     return du;
 }

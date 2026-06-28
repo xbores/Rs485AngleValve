@@ -14,7 +14,8 @@ typedef struct {
     float Kp0, Ki0, Kd0;        // 基础 PID 参数(可用 Modbus 的 P/I/D 实时赋值)
     float Ke,  Kec;             // 量化因子: 把 e、ec 映射到模糊论域[-3,3], 取 Ke=3/|e|max, Kec=3/|ec|max
     float Kup, Kui, Kud;        // 整定输出比例: 模糊输出[-3,3] 乘以它再叠加到基础参数上
-    float e1, e2;               // 上次、上上次误差(增量式PID历史)
+    float e1;                   // 上次误差(增量式 P 项与误差变化 EC 用)
+    float pv1, pv2;             // 上次、上上次测量值(D 项用测量值微分, 防目标突变冲击)
 } FuzzyPID_t;
 
 // 初始化: 设定基础参数与各比例因子, 并清零历史
