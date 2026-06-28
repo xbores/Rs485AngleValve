@@ -567,6 +567,11 @@
               <FileType>1</FileType>
               <FilePath>..\Libs\modbuscrc.c</FilePath>
             </File>
+            <File>
+              <FileName>fuzzy_pid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libs\fuzzy_pid.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

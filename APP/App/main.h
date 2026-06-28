@@ -43,6 +43,12 @@ typedef struct{
 	uint16_t Polarity;										//调节极性
 	uint16_t TargetValueSet;												//给定值目标值
 
+	uint16_t FuzzyEn;										//模糊PID使能 0:经典PID 1:模糊自整定
+	uint16_t FuzzyKecRatio;									//Kec = Ke * 该比例(默认4)
+	uint16_t FuzzyKupPct;									//Kup = P * %/100(默认30)
+	uint16_t FuzzyKuiPct;									//Kui = I * %/100(默认30)
+	uint16_t FuzzyKudPct;									//Kud = D * %/100(默认30)
+
 } Config_t;
 
 

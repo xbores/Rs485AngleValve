@@ -1,7 +1,8 @@
 #include "bsp.h"
+#include "fuzzy_pid.h"
 
 
-void GPIO_Configuration(void)    
+void GPIO_Configuration(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;	
 	
@@ -168,70 +169,61 @@ uint8_t Moto_Angle_Pos(Config_t *config, Valve_t *valve)
 
 
 
-void Moto_Flow_Pos(void)
+//从 Config 装载模糊PID参数: 满量程 maxv 决定量化因子 Ke;
+//模糊使能关时整定幅度置0, FuzzyPID 退化为以 P/I/D 为增益的经典增量PID(与原算法等价)
+static void Fuzzy_Load(FuzzyPID_t *fp, uint16_t maxv)
 {
-	static int32_t ValueErrEC[3] = {0,0,0};
-	
-	int32_t P_out,I_out,D_out,PID_Result;
-
-	ValueErrEC[0] = ValueErrEC[1];
-	ValueErrEC[1] = ValueErrEC[2];
-	ValueErrEC[2] = Valve.TargetFlow - Valve.CurrentFlow;
-
-	P_out = (ValueErrEC[2] - ValueErrEC[1])*Config.P;
-	I_out = ValueErrEC[2]*Config.I;
-	D_out = (ValueErrEC[0]+ValueErrEC[2]-2*ValueErrEC[1])*Config.D;
-	PID_Result = (P_out + I_out + D_out)*(int32_t)Config.MaxLimit/(int32_t)(Config.MaxFlow ? Config.MaxFlow : 1);		//防除零
-
-	if(PID_Result > 1000)
+	float mx = (maxv ? maxv : 1);
+	fp->Kp0 = Config.P;
+	fp->Ki0 = Config.I;
+	fp->Kd0 = Config.D;
+	fp->Ke  = 3.0f / mx;
+	fp->Kec = fp->Ke * (float)Config.FuzzyKecRatio;
+	if(Config.FuzzyEn)
 	{
-		PID_Result = 1000;
+		fp->Kup = (float)Config.P * (float)Config.FuzzyKupPct / 100.0f;
+		fp->Kui = (float)Config.I * (float)Config.FuzzyKuiPct / 100.0f;
+		fp->Kud = (float)Config.D * (float)Config.FuzzyKudPct / 100.0f;
 	}
-	else if(PID_Result < -1000)
+	else
 	{
-		PID_Result = -1000;
+		fp->Kup = fp->Kui = fp->Kud = 0.0f;									//退化为经典增量PID
 	}
+}
+
+//把增量式输出 du 按 最大行程/满量程 折算成电机运行时间(±1000ms), 限幅后驱动电机
+static void Fuzzy_Drive(float du, uint16_t maxv)
+{
+	int32_t PID_Result = (int32_t)(du * (float)Config.MaxLimit / (float)(maxv ? maxv : 1));
+
+	if(PID_Result > 1000)			PID_Result = 1000;
+	else if(PID_Result < -1000)		PID_Result = -1000;
 
 	if(PID_Result != 0)
 	{
 		Motor_Control(PID_Result>0?1:2);
 		Delay_Poll(PID_Result>0?PID_Result:(0-PID_Result));					//电机定时运行, 其间持续处理Modbus
 		Motor_Control(3);
-	}	
+	}
+}
+
+
+void Moto_Flow_Pos(void)
+{
+	static FuzzyPID_t fp;													//静态: 历史误差跨调用保持
+	Fuzzy_Load(&fp, Config.MaxFlow);
+	float du = FuzzyPID_Calc(&fp, (float)Valve.TargetFlow, (float)Valve.CurrentFlow);
+	Fuzzy_Drive(du, Config.MaxFlow);
 }
 
 
 
 void Moto_Amp_Pos(void)
 {
-	static int32_t ValueErrEC[3] = {0,0,0};
-	
-	int32_t P_out,I_out,D_out,PID_Result;
-
-	ValueErrEC[0] = ValueErrEC[1];
-	ValueErrEC[1] = ValueErrEC[2];
-	ValueErrEC[2] = Valve.TargetAmp - Valve.CurrentAmp;
-
-	P_out = (ValueErrEC[2] - ValueErrEC[1])*Config.P;
-	I_out = ValueErrEC[2]*Config.I;
-	D_out = (ValueErrEC[0]+ValueErrEC[2]-2*ValueErrEC[1])*Config.D;
-	PID_Result = (P_out + I_out + D_out)*(int32_t)Config.MaxLimit/(int32_t)(Config.MaxAmp ? Config.MaxAmp : 1); 		//防除零
-
-	if(PID_Result > 1000)
-	{
-		PID_Result = 1000;
-	}
-	else if(PID_Result < -1000)
-	{
-		PID_Result = -1000;
-	}
-
-	if(PID_Result != 0)
-	{
-		Motor_Control(PID_Result>0?1:2);
-		Delay_Poll(PID_Result>0?PID_Result:(0-PID_Result));					//电机定时运行, 其间持续处理Modbus
-		Motor_Control(3);
-	}	
+	static FuzzyPID_t fp;
+	Fuzzy_Load(&fp, Config.MaxAmp);
+	float du = FuzzyPID_Calc(&fp, (float)Valve.TargetAmp, (float)Valve.CurrentAmp);
+	Fuzzy_Drive(du, Config.MaxAmp);
 }
 
 
@@ -239,43 +231,18 @@ void Moto_Amp_Pos(void)
 
 void Moto_ValueSet_Pos(void)
 {
-	static int32_t ValueErrEC[3] = {0,0,0};
-	
-	int32_t P_out,I_out,D_out,PID_Result;
-
-	ValueErrEC[0] = ValueErrEC[1];
-	ValueErrEC[1] = ValueErrEC[2];
-	
-	
-	if(Config.Polarity == 0xAA)
+	static FuzzyPID_t fp;
+	float du;
+	Fuzzy_Load(&fp, Config.MaxValueSet);
+	if(Config.Polarity == 0xAA)												//反向: 误差取反(目标/实际对调)
 	{
-		ValueErrEC[2] = Valve.CurrentValueSet - Config.TargetValueSet;
+		du = FuzzyPID_Calc(&fp, (float)Valve.CurrentValueSet, (float)Config.TargetValueSet);
 	}
 	else
 	{
-		ValueErrEC[2] = Config.TargetValueSet - Valve.CurrentValueSet;
-	}		
-
-	P_out = (ValueErrEC[2] - ValueErrEC[1])*Config.P;
-	I_out = ValueErrEC[2]*Config.I;
-	D_out = (ValueErrEC[0]+ValueErrEC[2]-2*ValueErrEC[1])*Config.D;
-	PID_Result = (P_out + I_out + D_out)*(int32_t)Config.MaxLimit/(int32_t)(Config.MaxValueSet ? Config.MaxValueSet : 1); 		//防除零
-
-	if(PID_Result > 1000)
-	{
-		PID_Result = 1000;
+		du = FuzzyPID_Calc(&fp, (float)Config.TargetValueSet, (float)Valve.CurrentValueSet);
 	}
-	else if(PID_Result < -1000)
-	{
-		PID_Result = -1000;
-	}
-
-	if(PID_Result != 0)
-	{
-		Motor_Control(PID_Result>0?1:2);
-		Delay_Poll(PID_Result>0?PID_Result:(0-PID_Result));					//电机定时运行, 其间持续处理Modbus
-		Motor_Control(3);
-	}	
+	Fuzzy_Drive(du, Config.MaxValueSet);
 }
 
 

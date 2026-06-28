@@ -171,10 +171,23 @@ void Param_Init(Config_t *config, uint32_t param)
 		config->I = 50;
 		config->D = 12;
 		config->Adc20ma = 1000;
-		
+
+		config->FuzzyEn = 0;						//默认经典PID, 现场需要时再写寄存器32启用
+		config->FuzzyKecRatio = 4;
+		config->FuzzyKupPct = 30;
+		config->FuzzyKuiPct = 30;
+		config->FuzzyKudPct = 30;
+
 		Write_Config((uint32_t)config, param);
 	}
 	memcpy((uint8_t *)config, (uint8_t *)param, sizeof(Config_t));				//读取设备配置信息
+
+	//老固件Flash无下列字段(读出为0xFFFF/0), 升级后合法化, 不丢失原有标定/参数
+	if(config->FuzzyEn > 1)								config->FuzzyEn = 0;
+	if(config->FuzzyKecRatio == 0 || config->FuzzyKecRatio > 50)	config->FuzzyKecRatio = 4;
+	if(config->FuzzyKupPct > 200)						config->FuzzyKupPct = 30;
+	if(config->FuzzyKuiPct > 200)						config->FuzzyKuiPct = 30;
+	if(config->FuzzyKudPct > 200)						config->FuzzyKudPct = 30;
 }
 
 
@@ -411,8 +424,33 @@ uint8_t Write_RegValue(RS485_Rx_t *rx, uint16_t regaddr, uint16_t regvalue)
 		case 31:																	//PID调节极性	0;正向	1;反向
 			Config.Polarity = regvalue?0xAA:0;
 			fmcSaveflag = 1;
-		break;				
-		
+		break;
+
+		case 32:																	//模糊PID使能 0:经典 1:模糊
+			Config.FuzzyEn = regvalue?1:0;
+			fmcSaveflag = 1;
+		break;
+
+		case 33:																	//Kec相对Ke的倍数
+			Config.FuzzyKecRatio = (regvalue==0||regvalue>50)?4:regvalue;
+			fmcSaveflag = 1;
+		break;
+
+		case 34:																	//Kp整定强度%
+			Config.FuzzyKupPct = (regvalue>200)?30:regvalue;
+			fmcSaveflag = 1;
+		break;
+
+		case 35:																	//Ki整定强度%
+			Config.FuzzyKuiPct = (regvalue>200)?30:regvalue;
+			fmcSaveflag = 1;
+		break;
+
+		case 36:																	//Kd整定强度%
+			Config.FuzzyKudPct = (regvalue>200)?30:regvalue;
+			fmcSaveflag = 1;
+		break;
+
 		default:
 			rx->buffer[1] |= 0x80;
 			rx->buffer[2] = 2;
@@ -514,6 +552,17 @@ uint16_t Get_RegValue(uint16_t addr)
 		
 		case 31:																							//PID调节极性	0;正向	1;反向
 			return (Config.Polarity == 0xAA)?1:0;
+
+		case 32:
+			return Config.FuzzyEn;									//模糊PID使能 0:经典 1:模糊	默认0
+		case 33:
+			return Config.FuzzyKecRatio;							//Kec相对Ke的倍数			默认4
+		case 34:
+			return Config.FuzzyKupPct;								//Kp整定强度% (Kup=P*%/100)	默认30
+		case 35:
+			return Config.FuzzyKuiPct;								//Ki整定强度%				默认30
+		case 36:
+			return Config.FuzzyKudPct;								//Kd整定强度%				默认30
 
 		default:
 			return 0;
