@@ -161,8 +161,7 @@ void Param_Init(Config_t *config, uint32_t param)
 		config->modbusid = 13;
 		config->InitStatus = 2;
 		
-		config->FlowRateCal = 350;
-//		config->MinFlow = 50;
+		config->FlowRateCal = 450;
 		config->MaxFlow = 800;
 		config->MaxAmp = 200;					//0.2mpa
 		config->MaxValueSet = 200;					//默认最大给定值
@@ -675,7 +674,6 @@ uint8_t Valve_Dat_Cal(Config_t *config, Valve_t *valve)
 			if(cnt)
 			{
 				AT24CXX_Write(0,(uint8_t *)&(valve->FlowSum), 4);
-//				printf("\r\nsum: %d", Valve.FlowSum);
 			}
 		}
 	}

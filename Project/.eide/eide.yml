@@ -53,6 +53,7 @@ virtualFolder:
     - name: Libs
       files:
         - path: ../Libs/modbuscrc.c
+        - path: ../Libs/fuzzy_pid.c
       folders: []
 dependenceList: []
 outDir: build
@@ -188,8 +189,8 @@ targets:
         baseAddr: ""
         bin: ""
         cpuInfo:
-          cpuName: "null"
-          vendor: "null"
+          cpuName: STM32F030F4
+          vendor: ST
         otherCmds: ""
         proType: 1
         speed: 8000
